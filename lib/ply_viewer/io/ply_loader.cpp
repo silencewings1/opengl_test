@@ -90,7 +90,7 @@ PlyVertexes PlyLoader::Load()
         getline(ss, str, ' ');
         auto b = std::stoi(str);
 
-        ver.push_back({{x, y, z}, {r, g, b}});
+        ver.push_back({Eigen::Vector3d(x, y, z), {r, g, b}});
     }
 
     return ver;

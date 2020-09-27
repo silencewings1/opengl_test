@@ -1,10 +1,6 @@
 #pragma once
 #include <vector>
-
-struct PlyPosition
-{
-    double x, y, z;
-};
+#include <Eigen/Core>
 
 struct PlyColor
 {
@@ -13,7 +9,7 @@ struct PlyColor
 
 struct PlyVertex
 {
-    PlyPosition pos;
+    Eigen::Vector3d pos;
     PlyColor color;
 };
 

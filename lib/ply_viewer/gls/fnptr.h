@@ -5,7 +5,7 @@ namespace FuPtrConverter
 template <typename Callable>
 union Storage
 {
-    Storage() = default;
+    Storage(){};
     std::decay_t<Callable> callable;
 };
 
