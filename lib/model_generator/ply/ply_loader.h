@@ -1,5 +1,5 @@
 #pragma once
-#include "def/ply_def.h"
+#include "model_def/model.h"
 #include <Eigen/Core>
 #include <string>
 
@@ -8,7 +8,7 @@ class PlyLoader
 public:
     PlyLoader(const std::string& ply_path);
 
-    PlyVertexes Load();
+    Model Load();
     const Eigen::Vector3d& MinBound() const { return min_bound; }
     const Eigen::Vector3d& MaxBound() const { return max_bound; }
 

@@ -2,15 +2,15 @@
 #include <vector>
 #include <Eigen/Core>
 
-struct PlyColor
+struct ModelColor
 {
     int r, g, b;
 };
 
-struct PlyVertex
+struct ModelVertex
 {
     Eigen::Vector3d pos;
-    PlyColor color;
+    ModelColor color;
 };
 
-using PlyVertexes = std::vector<PlyVertex>;
+using Model = std::vector<ModelVertex>;

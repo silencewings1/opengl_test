@@ -1,4 +1,4 @@
-#include "ply_viewer/ply_viewer.h"
+#include "ply_display.h"
 
 int main(int argc, char** argv)
 {

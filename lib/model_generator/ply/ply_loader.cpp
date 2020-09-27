@@ -9,7 +9,7 @@ PlyLoader::PlyLoader(const std::string& ply_path)
 {
 }
 
-PlyVertexes PlyLoader::Load()
+Model PlyLoader::Load()
 {
     std::ifstream file(ply_path, std::ios::in);
     std::string line;
@@ -61,7 +61,7 @@ PlyVertexes PlyLoader::Load()
 
     min_bound = 10000 * Eigen::Vector3d::Ones();
     max_bound = -10000 * Eigen::Vector3d::Ones();
-    PlyVertexes ver;
+    Model ver;
     for (int i = 0; i < vertex_count; ++i)
     {
         getline(file, line);
