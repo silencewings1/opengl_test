@@ -10,10 +10,3 @@ target_link_libraries(test_ply
     ${OPENGL_LIBRARIES} 
     ${GLUT_LIBRARY} 
 )
-
-## test_mouse_rect
-add_executable(test_mouse_rect test_mouse_rect.cpp)
-target_link_libraries(test_mouse_rect 
-    ${OPENGL_LIBRARIES} 
-    ${GLUT_LIBRARY} 
-)

@@ -40,7 +40,7 @@ int main(int argc, char** argv)
     });
 
     viewer.SetCurveFunc([&model](int x, int y) {
-        Eigen::Vector3d res;
+        Eigen::Vector3d res = Eigen::Vector3d::Zero();
         double dis_min = 1e10;
 
         GLProjector projector;

@@ -1,6 +1,5 @@
 #include "gl_window.h"
 #include "fnptr.h"
-#include "gl_project.h"
 #include <iostream>
 
 GlWindow::GlWindow(const std::string& window_name)
@@ -182,7 +181,11 @@ void GlWindow::MotionFunc(int x, int y)
     {
         if (curve_func)
         {
-            curve_vertex.push_back(curve_func(x, win_height - y));
+            Eigen::Vector3d ver = curve_func(x, win_height - y);
+            if (!ver.isZero())
+            {
+                curve_vertex.push_back(ver);
+            }
         }
     }
     else if (leftDown && shiftDown) // pan with shift key
