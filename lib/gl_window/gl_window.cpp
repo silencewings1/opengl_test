@@ -98,7 +98,7 @@ void GlWindow::DrawRectBoxVertex()
 void GlWindow::DrawCurveVertex()
 {
     glPointSize(5.0);
-    glColor3f(1.0, 0.2, 0.2);
+    glColor3f(0.2, 1.0, 0.2);
     glBegin(GL_POINTS);
     for (const auto& vertex : curve_vertex)
     {
@@ -149,6 +149,13 @@ void GlWindow::MouseFunc(int button, int state, int x, int y)
     leftDown = (button == GLUT_LEFT_BUTTON) && (state == GLUT_DOWN);
     middleDown = (button == GLUT_MIDDLE_BUTTON) && (state == GLUT_DOWN);
     shiftDown = (glutGetModifiers() & GLUT_ACTIVE_SHIFT);
+    bool rightDown = (button == GLUT_RIGHT_BUTTON) && (state == GLUT_DOWN);
+
+    if (rightDown)
+    {
+        rect_box_vertex.clear();
+        curve_vertex.clear();
+    }
 
     if (rect_down && leftDown)
     {
@@ -208,8 +215,11 @@ void GlWindow::MotionFunc(int x, int y)
     glutPostRedisplay();
 }
 
-void GlWindow::SetBoundaryBox(const Eigen::Vector3d& bmin, const Eigen::Vector3d& bmax)
+void GlWindow::SetBoundaryBox(const WinBoundary& bound)
 {
+    auto& bmin = bound.wmin;
+    auto& bmax = bound.wmax;
+
     double PI = 3.14159265358979323846;
     double radius = (bmax - bmin).norm();
     g_center = 0.5 * (bmin + bmax);

@@ -4,12 +4,10 @@
 
 PlyLoader::PlyLoader(const std::string& ply_path)
     : ply_path{ply_path}
-    , min_bound{Eigen::Vector3d::Zero()}
-    , max_bound{Eigen::Vector3d::Zero()}
 {
 }
 
-Model PlyLoader::Load()
+Model PlyLoader::Load(WinBoundary& bound) const
 {
     std::ifstream file(ply_path, std::ios::in);
     std::string line;
@@ -59,9 +57,7 @@ Model PlyLoader::Load()
         return {};
     }
 
-    min_bound = 10000 * Eigen::Vector3d::Ones();
-    max_bound = -10000 * Eigen::Vector3d::Ones();
-    Model ver;
+    Model model;
     for (int i = 0; i < vertex_count; ++i)
     {
         getline(file, line);
@@ -76,13 +72,6 @@ Model PlyLoader::Load()
         getline(ss, str, ' ');
         auto z = std::stod(str);
 
-        min_bound(0) = std::min(min_bound(0), x);
-        min_bound(1) = std::min(min_bound(1), y);
-        min_bound(2) = std::min(min_bound(2), z);
-        max_bound(0) = std::max(max_bound(0), x);
-        max_bound(1) = std::max(max_bound(1), y);
-        max_bound(2) = std::max(max_bound(2), z);
-
         getline(ss, str, ' ');
         auto r = std::stoi(str);
         getline(ss, str, ' ');
@@ -90,8 +79,15 @@ Model PlyLoader::Load()
         getline(ss, str, ' ');
         auto b = std::stoi(str);
 
-        ver.push_back({Eigen::Vector3d(x, y, z), {r, g, b}});
+        model.push_back({Eigen::Vector3d(x, y, z), {r, g, b}});
+
+        bound.wmin(0) = std::min(bound.wmin(0), x);
+        bound.wmin(1) = std::min(bound.wmin(1), y);
+        bound.wmin(2) = std::min(bound.wmin(2), z);
+        bound.wmax(0) = std::max(bound.wmax(0), x);
+        bound.wmax(1) = std::max(bound.wmax(1), y);
+        bound.wmax(2) = std::max(bound.wmax(2), z);
     }
 
-    return ver;
+    return model;
 }

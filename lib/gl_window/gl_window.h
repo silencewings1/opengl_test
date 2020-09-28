@@ -1,5 +1,5 @@
 #pragma once
-#include <Eigen/Core>
+#include "def/win_boundary.h"
 #include <GL/glut.h>
 #include <functional>
 #include <string>
@@ -15,7 +15,7 @@ public:
 public:
     GlWindow(const std::string& window_name);
 
-    void SetBoundaryBox(const Eigen::Vector3d& bmin, const Eigen::Vector3d& bmax);
+    void SetBoundaryBox(const WinBoundary& bound);
 
     void SetDrawFrameFunc(const DrawFrameFunc& func) { draw_frame_func = func; }
     void SetRectBoxFunc(const RectBoxFunc& func) { rect_box_func = func; }

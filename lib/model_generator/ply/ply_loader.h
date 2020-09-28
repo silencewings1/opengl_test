@@ -1,19 +1,14 @@
 #pragma once
-#include "model_def/model.h"
-#include <Eigen/Core>
+#include "def/model.h"
+#include "def/win_boundary.h"
 #include <string>
 
 class PlyLoader
 {
 public:
     PlyLoader(const std::string& ply_path);
-
-    Model Load();
-    const Eigen::Vector3d& MinBound() const { return min_bound; }
-    const Eigen::Vector3d& MaxBound() const { return max_bound; }
+    Model Load(WinBoundary& bound) const;
 
 private:
     const std::string ply_path;
-    Eigen::Vector3d min_bound;
-    Eigen::Vector3d max_bound;
 };

@@ -1,14 +1,20 @@
-#include "ply_display.h"
+#include "disparity_display.h"
+#include <iostream>
 
 int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
 
-    auto loader = PlyLoader("model_ply/robust.ply");
-    auto model = loader.Load();
+    auto sgbm_solver = SgbmSolver("/home/ospacer/Documents/resource",
+                                  "/map",
+                                  "/images/heart_model2/left",
+                                  "/images/heart_model2/right");
+    WinBoundary win_bound;
+    auto model = sgbm_solver.Solve("left_3.png", "right_3.png", win_bound);
+    std::cout << "model vertex count:" << model.size() << std::endl;
 
     auto viewer = GlWindow("display");
-    viewer.SetBoundaryBox(loader.MinBound(), loader.MaxBound());
+    viewer.SetBoundaryBox(win_bound);
     viewer.SetDrawFrameFunc([&model]() {
         glPointSize(2.0);
         glBegin(GL_POINTS);
