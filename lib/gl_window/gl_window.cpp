@@ -1,16 +1,144 @@
 #include "gl_window.h"
 #include "fnptr.h"
+#include "math/tk_spline.h"
+#include <algorithm>
 #include <iostream>
+#include <numeric>
+
+namespace
+{
+
+using VertexSet = std::vector<Eigen::Vector3d>;
+
+VertexSet PreProcessCurve(const VertexSet& curve_vertex)
+{
+    auto&& ver = curve_vertex;
+
+    auto distance = [](const Eigen::Vector3d& lhs, const Eigen::Vector3d& rhs) {
+        return (lhs - rhs).norm();
+    };
+    auto distance_average = [&distance](const VertexSet& set) {
+        std::vector<double> dis_set(set.size() - 1);
+        for (int i = 0; i < set.size() - 1; ++i)
+        {
+            dis_set[i] = distance(set[i + 1], set[i]);
+        }
+        return std::accumulate(dis_set.begin(), dis_set.end(), 0.0) / dis_set.size();
+    };
+
+    // remove points too far
+    VertexSet ver2;
+    {
+        const double avg_dis = distance_average(ver);
+        const double dis_max = 3 * avg_dis;
+        if (distance(ver[0], ver[1]) < dis_max ||
+            distance(ver[0], ver[2]) < dis_max)
+        {
+            ver2.push_back(ver.front());
+        }
+        for (int i = 1; i < ver.size() - 1; ++i)
+        {
+            auto dis_left = distance(ver[i - 1], ver[i]);
+            auto dis_right = distance(ver[i], ver[i + 1]);
+            if (dis_left < dis_max &&
+                dis_right < dis_max)
+            {
+                ver2.push_back(ver[i]);
+            }
+        }
+        const auto eid = ver.size() - 1;
+        if (distance(ver[eid], ver[eid - 1]) < dis_max ||
+            distance(ver[eid], ver[eid - 2]) < dis_max)
+        {
+            ver2.push_back(ver.back());
+        }
+
+        if (ver2.size() < 3)
+        {
+            printf("size of ver2 less than 3\n");
+            return ver;
+        }
+    }
+
+    // remove points too close
+    VertexSet new_ver = {ver2.front()};
+    {
+        const double avg_dis = distance_average(ver2);
+        for (int i = 0; i < ver2.size() - 1;)
+        {
+            int j = i + 1;
+            for (; j < ver2.size(); ++j)
+            {
+                if (distance(ver2[i], ver2[j]) > avg_dis * 0.5)
+                {
+                    new_ver.push_back(ver2[j]);
+                    i = j;
+                    break;
+                }
+            }
+            if (j == ver2.size())
+                break;
+        }
+
+        if (new_ver.size() < 3)
+        {
+            printf("size of new_ver less than 3\n");
+            return ver2;
+        }
+    }
+
+    return new_ver;
+}
+
+VertexSet CreateSpline(VertexSet& curve_vertex)
+{
+    if (curve_vertex.size() <= 3)
+    {
+        printf("size of curve_vertex no more than 3\n");
+        return curve_vertex;
+    }
+
+    const auto new_curve_vertex = PreProcessCurve(curve_vertex);
+    curve_vertex = new_curve_vertex;
+
+    const auto size = new_curve_vertex.size();
+    std::vector<double> X(size), Y(size), Z(size), t(size);
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        X[i] = new_curve_vertex[i].x();
+        Y[i] = new_curve_vertex[i].y();
+        Z[i] = new_curve_vertex[i].z();
+        t[i] = static_cast<double>(i);
+    }
+
+    tk::spline sx, sy, sz;
+    sx.set_points(t, X);
+    sy.set_points(t, Y);
+    sz.set_points(t, Z);
+
+    VertexSet res;
+    constexpr auto step = 0.1;
+    for (double id = 0; id <= static_cast<double>(size - 1) + step; id += step)
+    {
+        res.emplace_back(sx(id), sy(id), sz(id));
+    }
+
+    return res;
+}
+
+} // namespace
 
 GlWindow::GlWindow(const std::string& window_name)
     : g_fov{45.0}
     , leftDown(false)
 {
-    Init(window_name);
+    InitGL(window_name);
+    InitMenu();
     SetCallbacks();
 }
 
-void GlWindow::Init(const std::string& window_name)
+void GlWindow::InitGL(const std::string& window_name)
 {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
@@ -27,6 +155,29 @@ void GlWindow::Init(const std::string& window_name)
     GLfloat light0_position[] = {0, 1, 0, 1.0};
     glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
     glEnable(GL_LIGHT0);
+}
+
+void GlWindow::InitMenu()
+{
+    glutCreateMenu(FnPtr<void(int)>([this](int value) {
+        switch (value)
+        {
+        case 101:
+            spline_vertex = CreateSpline(curve_vertex);
+            break;
+        case 102:
+            spline_vertex.clear();
+            break;
+        case 27:
+            exit(0);
+            break;
+        }
+    }));
+
+    glutAddMenuEntry("spline", 101);
+    glutAddMenuEntry("reset", 102);
+    glutAddMenuEntry("exit", 27);
+    glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
 void GlWindow::SetCallbacks()
@@ -79,6 +230,7 @@ void GlWindow::DisplayFunc()
 
     DrawRectBoxVertex();
     DrawCurveVertex();
+    DrawSpline();
 
     glutSwapBuffers();
 }
@@ -101,6 +253,18 @@ void GlWindow::DrawCurveVertex()
     glColor3f(0.2, 1.0, 0.2);
     glBegin(GL_POINTS);
     for (const auto& vertex : curve_vertex)
+    {
+        glVertex3d(vertex.x(), vertex.y(), vertex.z());
+    }
+    glEnd();
+}
+
+void GlWindow::DrawSpline()
+{
+    glLineWidth(5);
+    glColor3f(1.0, 0.2, 0.2);
+    glBegin(GL_LINE_STRIP);
+    for (const auto& vertex : spline_vertex)
     {
         glVertex3d(vertex.x(), vertex.y(), vertex.z());
     }
@@ -191,7 +355,11 @@ void GlWindow::MotionFunc(int x, int y)
             Eigen::Vector3d ver = curve_func(x, win_height - y);
             if (!ver.isZero())
             {
-                curve_vertex.push_back(ver);
+                if (curve_vertex.empty() ||
+                    (ver - curve_vertex.back()).norm() > 1e-7)
+                {
+                    curve_vertex.push_back(ver);
+                }
             }
         }
     }

@@ -144,6 +144,7 @@ Model SgbmSolver::Solve(const std::string& left_image_name,
     // disparity map
     cv::Mat disp8U = cv::Mat(disp.rows, disp.cols, CV_8UC1);
     cv::normalize(disp, disp8U, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+    cv::imwrite("disparity.jpg", disp8U);
 
     // depth_map
     cv::Mat depth = cv::Mat(disp8U.rows, disp8U.cols, CV_32FC1);
@@ -159,7 +160,9 @@ Model SgbmSolver::Solve(const std::string& left_image_name,
             depth.ptr<float>(v)[u] = d;
         }
     }
+    cv::imwrite("depth_before.jpg", depth);
     FillDepthMap32F(depth);
+    cv::imwrite("depth_after.jpg", depth);
 
     // ply_model
     Model model;
@@ -169,7 +172,7 @@ Model SgbmSolver::Solve(const std::string& left_image_name,
         for (int u = 0; u < color_map.cols; u++)
         {
             double d = depth.ptr<float>(v)[u];
-            if (d > 60 || d < 20)
+            if (d > 60 || d < 25)
                 continue;
 
             Eigen::Vector3d pos;

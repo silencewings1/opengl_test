@@ -1,6 +1,6 @@
 #pragma once
 
-namespace FuPtrConverter
+namespace FnPtrConverter
 {
 template <typename Callable>
 union Storage
@@ -25,10 +25,10 @@ auto FnPtr_(Callable&& c, Ret (*)(Args...))
         return Ret(s.callable(std::forward<Args>(args)...));
     };
 }
-} // namespace FuPtrConverter
+} // namespace FnPtrConverter
 
 template <typename Fn, int N = 0, typename Callable>
 Fn* FnPtr(Callable&& c)
 {
-    return FuPtrConverter::FnPtr_<N>(std::forward<Callable>(c), (Fn*)nullptr);
+    return FnPtrConverter::FnPtr_<N>(std::forward<Callable>(c), (Fn*)nullptr);
 }

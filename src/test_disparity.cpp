@@ -10,7 +10,7 @@ int main(int argc, char** argv)
                                   "/images/heart_model2/left",
                                   "/images/heart_model2/right");
     WinBoundary win_bound;
-    auto model = sgbm_solver.Solve("left_3.png", "right_3.png", win_bound);
+    auto model = sgbm_solver.Solve("left_1.png", "right_1.png", win_bound);
     std::cout << "model vertex count:" << model.size() << std::endl;
 
     auto viewer = GlWindow("display");

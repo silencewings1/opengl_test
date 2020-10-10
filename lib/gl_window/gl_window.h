@@ -22,7 +22,9 @@ public:
     void SetCurveFunc(const CurveFunc& func) { curve_func = func; }
 
 private:
-    void Init(const std::string& window_name);
+    void InitGL(const std::string& window_name);
+    void InitMenu();
+
     void SetCallbacks();
 
     // cb
@@ -35,6 +37,7 @@ private:
 
     void DrawRectBoxVertex();
     void DrawCurveVertex();
+    void DrawSpline();
 
 private:
     DrawFrameFunc draw_frame_func;
@@ -44,6 +47,7 @@ private:
 
     CurveFunc curve_func;
     std::vector<Eigen::Vector3d> curve_vertex;
+    std::vector<Eigen::Vector3d> spline_vertex;
 
 private:
     const double g_fov;
