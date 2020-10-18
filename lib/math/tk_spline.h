@@ -103,17 +103,16 @@ public:
         , m_right_value(0.0)
         , m_force_linear_extrapolation(false)
     {
-        ;
     }
 
     // optional, but if called it has to come be before set_points()
-    void set_boundary(bd_type left, double left_value,
-                      bd_type right, double right_value,
-                      bool force_linear_extrapolation = false);
+    // void set_boundary(bd_type left, double left_value,
+    //                   bd_type right, double right_value,
+    //                   bool force_linear_extrapolation = false);
     void set_points(const std::vector<double>& x,
                     const std::vector<double>& y, bool cubic_spline = true);
     double operator()(double x) const;
-    double deriv(int order, double x) const;
+    // double deriv(int order, double x) const;
 };
 
 // ---------------------------------------------------------------------
@@ -283,17 +282,17 @@ std::vector<double> band_matrix::lu_solve(const std::vector<double>& b,
 // spline implementation
 // -----------------------
 
-void spline::set_boundary(spline::bd_type left, double left_value,
-                          spline::bd_type right, double right_value,
-                          bool force_linear_extrapolation)
-{
-    assert(m_x.size() == 0); // set_points() must not have happened yet
-    m_left = left;
-    m_right = right;
-    m_left_value = left_value;
-    m_right_value = right_value;
-    m_force_linear_extrapolation = force_linear_extrapolation;
-}
+// void spline::set_boundary(spline::bd_type left, double left_value,
+//                           spline::bd_type right, double right_value,
+//                           bool force_linear_extrapolation)
+// {
+//     assert(m_x.size() == 0); // set_points() must not have happened yet
+//     m_left = left;
+//     m_right = right;
+//     m_left_value = left_value;
+//     m_right_value = right_value;
+//     m_force_linear_extrapolation = force_linear_extrapolation;
+// }
 
 void spline::set_points(const std::vector<double>& x,
                         const std::vector<double>& y, bool cubic_spline)
@@ -430,71 +429,71 @@ double spline::operator()(double x) const
     return interpol;
 }
 
-double spline::deriv(int order, double x) const
-{
-    assert(order > 0);
+// double spline::deriv(int order, double x) const
+// {
+//     assert(order > 0);
 
-    size_t n = m_x.size();
-    // find the closest point m_x[idx] < x, idx=0 even if x<m_x[0]
-    std::vector<double>::const_iterator it;
-    it = std::lower_bound(m_x.begin(), m_x.end(), x);
-    int idx = std::max(int(it - m_x.begin()) - 1, 0);
+//     size_t n = m_x.size();
+//     // find the closest point m_x[idx] < x, idx=0 even if x<m_x[0]
+//     std::vector<double>::const_iterator it;
+//     it = std::lower_bound(m_x.begin(), m_x.end(), x);
+//     int idx = std::max(int(it - m_x.begin()) - 1, 0);
 
-    double h = x - m_x[idx];
-    double interpol;
-    if (x < m_x[0])
-    {
-        // extrapolation to the left
-        switch (order)
-        {
-        case 1:
-            interpol = 2.0 * m_b0 * h + m_c0;
-            break;
-        case 2:
-            interpol = 2.0 * m_b0 * h;
-            break;
-        default:
-            interpol = 0.0;
-            break;
-        }
-    }
-    else if (x > m_x[n - 1])
-    {
-        // extrapolation to the right
-        switch (order)
-        {
-        case 1:
-            interpol = 2.0 * m_b[n - 1] * h + m_c[n - 1];
-            break;
-        case 2:
-            interpol = 2.0 * m_b[n - 1];
-            break;
-        default:
-            interpol = 0.0;
-            break;
-        }
-    }
-    else
-    {
-        // interpolation
-        switch (order)
-        {
-        case 1:
-            interpol = (3.0 * m_a[idx] * h + 2.0 * m_b[idx]) * h + m_c[idx];
-            break;
-        case 2:
-            interpol = 6.0 * m_a[idx] * h + 2.0 * m_b[idx];
-            break;
-        case 3:
-            interpol = 6.0 * m_a[idx];
-            break;
-        default:
-            interpol = 0.0;
-            break;
-        }
-    }
-    return interpol;
-}
+//     double h = x - m_x[idx];
+//     double interpol;
+//     if (x < m_x[0])
+//     {
+//         // extrapolation to the left
+//         switch (order)
+//         {
+//         case 1:
+//             interpol = 2.0 * m_b0 * h + m_c0;
+//             break;
+//         case 2:
+//             interpol = 2.0 * m_b0 * h;
+//             break;
+//         default:
+//             interpol = 0.0;
+//             break;
+//         }
+//     }
+//     else if (x > m_x[n - 1])
+//     {
+//         // extrapolation to the right
+//         switch (order)
+//         {
+//         case 1:
+//             interpol = 2.0 * m_b[n - 1] * h + m_c[n - 1];
+//             break;
+//         case 2:
+//             interpol = 2.0 * m_b[n - 1];
+//             break;
+//         default:
+//             interpol = 0.0;
+//             break;
+//         }
+//     }
+//     else
+//     {
+//         // interpolation
+//         switch (order)
+//         {
+//         case 1:
+//             interpol = (3.0 * m_a[idx] * h + 2.0 * m_b[idx]) * h + m_c[idx];
+//             break;
+//         case 2:
+//             interpol = 6.0 * m_a[idx] * h + 2.0 * m_b[idx];
+//             break;
+//         case 3:
+//             interpol = 6.0 * m_a[idx];
+//             break;
+//         default:
+//             interpol = 0.0;
+//             break;
+//         }
+//     }
+//     return interpol;
+// }
 
 } // namespace tk
 

@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 {
     glutInit(&argc, argv);
 
-    const std::string work_path = "/home/ospacer/Documents/opengl_test/";
+    const std::string work_path = "/home/ospacer/Documents/sfm_project/";
     auto loader = PlyLoader(work_path + "model_ply/robust.ply");
     WinBoundary bound;
     auto model = loader.Load(bound);

@@ -1,5 +1,6 @@
 #include "gl_window.h"
 #include "fnptr.h"
+#include "math/quadric_surface.h"
 #include "math/tk_spline.h"
 #include <algorithm>
 #include <iostream>
@@ -12,6 +13,12 @@ using VertexSet = std::vector<Eigen::Vector3d>;
 
 VertexSet PreProcessCurve(const VertexSet& curve_vertex)
 {
+    if (curve_vertex.size() <= 3)
+    {
+        printf("size of curve_vertex no more than 3\n");
+        return curve_vertex;
+    }
+
     auto&& ver = curve_vertex;
 
     auto distance = [](const Eigen::Vector3d& lhs, const Eigen::Vector3d& rhs) {
@@ -19,7 +26,7 @@ VertexSet PreProcessCurve(const VertexSet& curve_vertex)
     };
     auto distance_average = [&distance](const VertexSet& set) {
         std::vector<double> dis_set(set.size() - 1);
-        for (int i = 0; i < set.size() - 1; ++i)
+        for (size_t i = 0; i < set.size() - 1; ++i)
         {
             dis_set[i] = distance(set[i + 1], set[i]);
         }
@@ -36,7 +43,7 @@ VertexSet PreProcessCurve(const VertexSet& curve_vertex)
         {
             ver2.push_back(ver.front());
         }
-        for (int i = 1; i < ver.size() - 1; ++i)
+        for (size_t i = 1; i < ver.size() - 1; ++i)
         {
             auto dis_left = distance(ver[i - 1], ver[i]);
             auto dis_right = distance(ver[i], ver[i + 1]);
@@ -64,9 +71,9 @@ VertexSet PreProcessCurve(const VertexSet& curve_vertex)
     VertexSet new_ver = {ver2.front()};
     {
         const double avg_dis = distance_average(ver2);
-        for (int i = 0; i < ver2.size() - 1;)
+        for (size_t i = 0; i < ver2.size() - 1;)
         {
-            int j = i + 1;
+            size_t j = i + 1;
             for (; j < ver2.size(); ++j)
             {
                 if (distance(ver2[i], ver2[j]) > avg_dis * 0.5)
@@ -90,7 +97,7 @@ VertexSet PreProcessCurve(const VertexSet& curve_vertex)
     return new_ver;
 }
 
-VertexSet CreateSpline(VertexSet& curve_vertex)
+VertexSet CreateSpline(const VertexSet& curve_vertex)
 {
     if (curve_vertex.size() <= 3)
     {
@@ -98,17 +105,14 @@ VertexSet CreateSpline(VertexSet& curve_vertex)
         return curve_vertex;
     }
 
-    const auto new_curve_vertex = PreProcessCurve(curve_vertex);
-    curve_vertex = new_curve_vertex;
-
-    const auto size = new_curve_vertex.size();
+    const auto size = curve_vertex.size();
     std::vector<double> X(size), Y(size), Z(size), t(size);
 
     for (size_t i = 0; i < size; ++i)
     {
-        X[i] = new_curve_vertex[i].x();
-        Y[i] = new_curve_vertex[i].y();
-        Z[i] = new_curve_vertex[i].z();
+        X[i] = curve_vertex[i].x();
+        Y[i] = curve_vertex[i].y();
+        Z[i] = curve_vertex[i].z();
         t[i] = static_cast<double>(i);
     }
 
@@ -125,6 +129,29 @@ VertexSet CreateSpline(VertexSet& curve_vertex)
     }
 
     return res;
+}
+
+void ProjectCurveOntoSurface(const VertexSet& surface_vertex,
+                             VertexSet& curve_vertex)
+{
+    auto surface = QuadricSurfaceSolver::Solve(surface_vertex);
+    if (!surface.Valid())
+    {
+        return;
+    }
+
+    for (auto& vertex : curve_vertex)
+    {
+        auto dis = surface.Value(vertex);
+        while (abs(dis) > 1e-7)
+        {
+            auto& val = dis;
+            auto grad = surface.Gradiant(vertex);
+            vertex += -val * grad / (pow(grad.norm(), 2));
+
+            dis = surface.Value(vertex);
+        }
+    }
 }
 
 } // namespace
@@ -163,10 +190,15 @@ void GlWindow::InitMenu()
         switch (value)
         {
         case 101:
+            curve_vertex = PreProcessCurve(curve_vertex);
             spline_vertex = CreateSpline(curve_vertex);
             break;
         case 102:
             spline_vertex.clear();
+            break;
+        case 103:
+            ProjectCurveOntoSurface(rect_box_vertex, curve_vertex);
+            spline_vertex = CreateSpline(curve_vertex);
             break;
         case 27:
             exit(0);
@@ -176,6 +208,7 @@ void GlWindow::InitMenu()
 
     glutAddMenuEntry("spline", 101);
     glutAddMenuEntry("reset", 102);
+    glutAddMenuEntry("surface", 103);
     glutAddMenuEntry("exit", 27);
     glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
