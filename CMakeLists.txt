@@ -30,7 +30,6 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 ## OPENMVG
 find_package(OpenMVG REQUIRED)
 include_directories(${OPENMVG_INCLUDE_DIRS})
-message(STATUS "OpenMVG: " ${OPENMVG_INCLUDE_DIRS})
 include_directories("/usr/local/include/openMVG_dependencies/")
 
 ## sub
