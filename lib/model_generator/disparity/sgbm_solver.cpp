@@ -1,7 +1,8 @@
 #include "sgbm_solver.h"
-#include "def/cam_para.h"
 #include <opencv2/opencv.hpp>
 
+#define USE_STEREO 1
+#include "def/cam_para.h"
 using namespace CameraPara;
 
 namespace

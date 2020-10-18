@@ -1,7 +1,5 @@
 #pragma once
 
-#define USE_IPHONE7P 1
-
 namespace CameraPara
 {
 

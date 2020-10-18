@@ -38,6 +38,7 @@
 #include <third_party/progress/progress_display.hpp>
 #include <third_party/stlplus3/filesystemSimplified/file_system.hpp>
 
+#define USE_IPHONE7P 1
 #include "def/cam_para.h"
 #include "model_generator/ply/SfMPlyHelper.hpp"
 
