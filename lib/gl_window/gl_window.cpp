@@ -261,9 +261,14 @@ void GlWindow::DisplayFunc()
     if (draw_frame_func)
         draw_frame_func();
 
-    DrawRectBoxVertex();
-    DrawCurveVertex();
-    DrawSpline();
+    if (!rect_box_vertex.empty())
+        DrawRectBoxVertex();
+
+    if (!curve_vertex.empty())
+        DrawCurveVertex();
+
+    if (!spline_vertex.empty())
+        DrawSpline();
 
     glutSwapBuffers();
 }

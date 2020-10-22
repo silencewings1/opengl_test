@@ -24,7 +24,7 @@
  */
 
 /*
- * clone from https://github.com/ttk592/spline 
+ * clone and revise from https://github.com/ttk592/spline 
  */ 
 
 #pragma once

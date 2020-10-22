@@ -95,7 +95,6 @@ std::vector<Vec3> GetCameraPositions(const SfM_Data& sfm_data)
 
 } // namespace
 
-////////////////////////////////////////
 GlobalSfM::GlobalSfM(const std::string images_dir,
                      const std::string output_dir)
     : images_dir(images_dir)
