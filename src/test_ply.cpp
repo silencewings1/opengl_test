@@ -6,7 +6,8 @@ int main(int argc, char** argv)
     glutInit(&argc, argv);
 
     const std::string work_path = "/home/ospacer/Documents/sfm_project/";
-    auto loader = PlyLoader(work_path + "model_ply/robust.ply");
+    auto loader = PlyLoader(work_path + "model_ply/model_dense.ply");
+    std::cout << "PlyLoader success\n";
     WinBoundary bound;
     auto model = loader.Load(bound);
     std::cout << "model vertex count:" << model.size() << std::endl;

@@ -13,4 +13,5 @@ public:
 private:
     const std::string images_dir;
     const std::string output_dir;
+    const std::string maps_dir = "/home/ospacer/Documents/resource/map";
 };

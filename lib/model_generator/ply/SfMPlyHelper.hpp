@@ -98,6 +98,15 @@ inline bool exportToPly(
 
     outfile << std::fixed << std::setprecision(std::numeric_limits<double>::digits10 + 1);
 
+    for (size_t i = 0; i < vec_camPos.size(); ++i)
+    {
+        outfile
+            << vec_camPos[i](0) << ' '
+            << vec_camPos[i](1) << ' '
+            << vec_camPos[i](2) << ' '
+            << "0 255 0\n";
+    }
+
     for (size_t i = 0; i < vec_points.size(); ++i)
     {
         if (vec_coloredPoints == nullptr)
@@ -117,14 +126,6 @@ inline bool exportToPly(
                 << "\n";
     }
 
-    for (size_t i = 0; i < vec_camPos.size(); ++i)
-    {
-        outfile
-            << vec_camPos[i](0) << ' '
-            << vec_camPos[i](1) << ' '
-            << vec_camPos[i](2) << ' '
-            << "0 255 0\n";
-    }
     outfile.flush();
     const bool bOk = outfile.good();
     outfile.close();

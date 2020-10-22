@@ -38,9 +38,14 @@
 #include <third_party/progress/progress_display.hpp>
 #include <third_party/stlplus3/filesystemSimplified/file_system.hpp>
 
-#define USE_IPHONE7P 1
+#define USE_STEREO 1
+// #define USE_IPHONE7P 1
 #include "def/cam_para.h"
 #include "model_generator/ply/SfMPlyHelper.hpp"
+
+#ifdef USE_STEREO
+#include "rectify/rectifier.h"
+#endif
 
 using namespace openMVG;
 using namespace openMVG::cameras;
@@ -60,6 +65,10 @@ namespace
 
 const std::string sfm_data_file = "sfm_data.json";
 const std::string color_ply_name = "color.ply";
+const std::string left_prefix = "left_";
+const std::string right_prefix = "right_";
+const std::string rect_prefix = "rect_";
+const std::string ref_id = "1";
 
 struct My_Regions_Provider : Regions_Provider
 {
@@ -91,6 +100,61 @@ std::vector<Vec3> GetCameraPositions(const SfM_Data& sfm_data)
     }
 
     return vec_camPosition;
+}
+
+// get camera position with given left && right path
+// rect_left_00.jpg
+// rect_right_00.jpg
+struct PPP
+{
+    Vec3 left_pos, right_pos;
+    double Distance() const { return (left_pos - right_pos).norm(); }
+};
+
+std::vector<Vec3> GetCameraPositionsNew(const SfM_Data& sfm_data, PPP& ppp)
+{
+    std::vector<Vec3> vec_camPosition;
+
+    for (const auto& view : sfm_data.GetViews())
+    {
+        View* vv = view.second.get();
+        if (sfm_data.IsPoseAndIntrinsicDefined(vv))
+        {
+            const geometry::Pose3 pose = sfm_data.GetPoseOrDie(vv);
+            vec_camPosition.push_back(pose.center());
+
+            if (stlplus::basename_part(vv->s_Img_path) == rect_prefix + left_prefix + ref_id)
+            {
+                ppp.left_pos = vec_camPosition.back();
+            }
+            else if (stlplus::basename_part(vv->s_Img_path) == rect_prefix + right_prefix + ref_id)
+            {
+                ppp.right_pos = vec_camPosition.back();
+            }
+        }
+    }
+
+    return vec_camPosition;
+}
+
+void AdjustModelPosition(std::vector<Vec3>& vec_points,
+                         std::vector<Vec3>& vec_camPos,
+                         const PPP& ppp)
+{
+    const auto scale = CameraPara::baseline / ppp.Distance();
+    std::cout << "left_pos:\t" << ppp.left_pos.transpose() << std::endl;
+    std::cout << "right_pos:\t" << ppp.right_pos.transpose() << std::endl;
+
+    for (auto& vec : vec_points)
+    {
+        vec -= ppp.left_pos;
+        vec *= scale;
+    }
+    for (auto& vec : vec_camPos)
+    {
+        vec -= ppp.left_pos;
+        vec *= scale;
+    }
 }
 
 } // namespace
@@ -129,17 +193,74 @@ bool GlobalSfM::Solve() const
             }
         }
 
-        std::vector<std::string> vec_image = stlplus::folder_files(images_dir);
-        std::sort(vec_image.begin(), vec_image.end());
+        std::string images_root_path = images_dir;
 
-        // SfM_Data sfm_data;
-        sfm_data.s_root_path = images_dir;
+#ifdef USE_STEREO
+        {
+            Rectifier rectifier(cv::Size(1920, 1080), maps_dir);
+
+            const std::string rectified_dir = output_dir + "/rectified";
+            images_root_path = rectified_dir;
+            if (!stlplus::folder_exists(rectified_dir))
+            {
+                if (!stlplus::folder_create(rectified_dir))
+                {
+                    std::cerr << "\nCannot create rectify directory" << std::endl;
+                    return false;
+                }
+            }
+
+            std::vector<std::string> vec_image = stlplus::folder_files(images_dir);
+            std::sort(vec_image.begin(), vec_image.end());
+            for (const auto& iter_image : vec_image)
+            {
+                const std::string sImageFilename = stlplus::create_filespec(images_dir, iter_image);
+                const std::string sImFilenamePart = stlplus::filename_part(sImageFilename);
+
+                if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
+                {
+                    std::cout << sImFilenamePart << ": Unkown image file format.\n";
+                    continue;
+                }
+
+                auto side_id = [&sImFilenamePart]() {
+                    if (sImFilenamePart.find(left_prefix) != std::string::npos)
+                        return Rectifier::ImgIdx::LEFT;
+                    if (sImFilenamePart.find(right_prefix) != std::string::npos)
+                        return Rectifier::ImgIdx::RIGHT;
+                    return Rectifier::ImgIdx::INVAILD;
+                }();
+
+                if (side_id == Rectifier::ImgIdx::INVAILD)
+                {
+                    std::cout << sImFilenamePart << ": not left or right image file.\n";
+                    continue;
+                }
+
+                cv::Mat img = cv::imread(sImageFilename);
+                img = rectifier.rectify(img, side_id);
+                cv::imwrite(stlplus::create_filespec(rectified_dir, rect_prefix + sImFilenamePart), img);
+            }
+
+            std::this_thread::sleep_for(100ms);
+        }
+#endif
+
+        sfm_data.s_root_path = images_root_path;
         Views& views = sfm_data.views;
         Intrinsics& intrinsics = sfm_data.intrinsics;
 
+        std::vector<std::string> vec_image = stlplus::folder_files(images_root_path);
+        if (vec_image.empty())
+        {
+            std::cout << "rectified image empty\n";
+            return false;
+        }
+
+        std::sort(vec_image.begin(), vec_image.end());
         for (const auto& iter_image : vec_image)
         {
-            const std::string sImageFilename = stlplus::create_filespec(images_dir, iter_image);
+            const std::string sImageFilename = stlplus::create_filespec(images_root_path, iter_image);
             const std::string sImFilenamePart = stlplus::filename_part(sImageFilename);
 
             if (openMVG::image::GetFormat(sImageFilename.c_str()) == openMVG::image::Unknown)
@@ -167,9 +288,9 @@ bool GlobalSfM::Solve() const
 
         GroupSharedIntrinsics(sfm_data);
 
-        if (!Save(sfm_data,
-                  stlplus::create_filespec(output_dir, sfm_data_file).c_str(),
-                  ESfM_Data(VIEWS | INTRINSICS)))
+        if (!openMVG::sfm::Save(sfm_data,
+                                stlplus::create_filespec(output_dir, sfm_data_file).c_str(),
+                                ESfM_Data(VIEWS | INTRINSICS)))
         {
             return false;
         }
@@ -181,7 +302,7 @@ bool GlobalSfM::Solve() const
                   << "usable #Intrinsic(s) listed in sfm_data: " << sfm_data.GetIntrinsics().size() << std::endl;
     }
 
-    // feature && matches
+    // feature && matches && sfm
     {
         // regions
         std::unique_ptr<Regions> regions_type = std::make_unique<SIFT_Regions>();
@@ -271,19 +392,43 @@ bool GlobalSfM::Solve() const
 
             std::cout << " Total Ac-Global-Sfm took (s): " << timer.elapsed() << std::endl;
 
-            Save(sfmEngine.Get_SfM_Data(),
-                 stlplus::create_filespec(output_dir, "cloud_and_poses", ".ply"),
-                 ESfM_Data(ALL));
+            openMVG::sfm::Save(sfmEngine.Get_SfM_Data(),
+                               stlplus::create_filespec(output_dir, "cloud_and_poses", ".ply"),
+                               ESfM_Data(ALL));
+
+            openMVG::sfm::Save(sfmEngine.Get_SfM_Data(),
+                               stlplus::create_filespec(output_dir, "sfm_data", ".bin"),
+                               ESfM_Data(ALL));
 
             // color ply
-            std::vector<Vec3> vec_3dPoints, vec_tracksColor;
-            if (ColorizeTracks(sfmEngine.Get_SfM_Data(), vec_3dPoints, vec_tracksColor))
             {
-                auto vec_camPosition = GetCameraPositions(sfmEngine.Get_SfM_Data());
-                if (!plyHelper::exportToPly(vec_3dPoints, vec_camPosition, output_dir + color_ply_name, &vec_tracksColor))
+                std::vector<Vec3> vec_3dPoints, vec_tracksColor;
+                if (ColorizeTracks(sfmEngine.Get_SfM_Data(), vec_3dPoints, vec_tracksColor))
                 {
-                    std::cout << "export " << color_ply_name << " fail\n";
-                    return false;
+                    auto vec_camPosition = GetCameraPositions(sfmEngine.Get_SfM_Data());
+                    if (!plyHelper::exportToPly(vec_3dPoints, vec_camPosition, output_dir + color_ply_name, &vec_tracksColor))
+                    {
+                        std::cout << "export " << color_ply_name << " fail\n";
+                        return false;
+                    }
+                }
+            }
+
+            // resize_ply
+            {
+                std::vector<Vec3> vec_3dPoints, vec_tracksColor;
+                if (ColorizeTracks(sfmEngine.Get_SfM_Data(), vec_3dPoints, vec_tracksColor))
+                {
+                    PPP ppp;
+                    auto vec_camPosition = GetCameraPositionsNew(sfmEngine.Get_SfM_Data(), ppp);
+                    AdjustModelPosition(vec_3dPoints, vec_camPosition, ppp);
+                    if (!plyHelper::exportToPly(vec_3dPoints, vec_camPosition, output_dir + "real.ply", &vec_tracksColor))
+                    {
+                        std::cout << "export "
+                                  << "real.ply"
+                                  << " fail\n";
+                        return false;
+                    }
                 }
             }
         }
@@ -292,7 +437,7 @@ bool GlobalSfM::Solve() const
     std::cout << std::endl
               << "--- Total took (s): " << total_timer.elapsed() << " ---\n\n";
 
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(100ms);
 
     return true;
 }

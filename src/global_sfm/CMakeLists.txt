@@ -22,4 +22,6 @@ PRIVATE
   OpenMVG::openMVG_sfm
   OpenMVG::openMVG_system
   OpenMVG::vlsift
+
+  ${OpenCV_LIBS}
 )
